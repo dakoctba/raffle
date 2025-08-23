@@ -15,8 +15,8 @@ defmodule RaffleApi.Application do
       # Start a worker by calling: RaffleApi.Worker.start_link(arg)
       # {RaffleApi.Worker, arg},
       # Start to serve requests, typically the last entry
-      {Task.Supervisor, name: RaffleApi.UserBufferSupervisor},
-      RaffleApi.Users.UserBuffer,
+      RaffleApi.Users.Publisher,
+      RaffleApi.Users.Consumer,
       RaffleApiWeb.Endpoint
     ]
 

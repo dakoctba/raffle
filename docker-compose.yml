@@ -8,24 +8,23 @@ services:
       - "raffle-db-data:/var/lib/postgresql/data"
     environment:
       - POSTGRES_PASSWORD=postgres
-  # rabbitmq:
-  #   container_name: rabbitmq
-  #   image: rabbitmq:3-management
-  #   restart: always
-  #   hostname: rabbitmq
-  #   volumes:
-  #     - ./.services/rabbitmq/mnesia:/var/lib/rabbitmq
-  #     - ./config/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins
-  #     - ./config/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
-  #   ports:
-  #     - 5672:5672
-  #     - 15672:15672
-  #     - 5552:5552
-  #   environment:
-  #   # Fazemos o override do USER em desenvolvimento.
-  #     - RABBITMQ_DEFAULT_USER=guest
-  #     - RABBITMQ_DEFAULT_PASS=guest
-  #     - RABBITMQ_DEFAULT_VHOST=/
+  raffle-rabbitmq:
+    container_name: raffle-rabbitmq
+    image: rabbitmq:3-management
+    restart: always
+    hostname: rabbitmq
+    # volumes:
+    #   - ./.services/rabbitmq/mnesia:/var/lib/rabbitmq
+    #   - ./config/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins
+    #   - ./config/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+    ports:
+      - 5672:5672
+      - 15672:15672
+      - 5552:5552
+    # environment:
+    #   - RABBITMQ_DEFAULT_USER=guest
+    #   - RABBITMQ_DEFAULT_PASS=guest
+    #   - RABBITMQ_DEFAULT_VHOST=/
 
 volumes:
   raffle-db-data:
