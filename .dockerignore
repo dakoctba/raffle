@@ -1,0 +1,16 @@
+_build
+_generated
+.cache
+.docker
+.DS_Store
+.elixir_ls/*
+.env
+.envrc
+.services*
+*.gz
+*props.d.ts
+data
+deps
+erl_crash.dump
+exported/*
+tmp/*
