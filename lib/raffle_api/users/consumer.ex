@@ -24,8 +24,8 @@ defmodule RaffleApi.Users.Consumer do
       ],
       batchers: [
         db: [
-          concurrency: 10,
-          batch_size: 1_000,
+          concurrency: 2,
+          batch_size: 500,
           batch_timeout: 1_000
         ]
       ]

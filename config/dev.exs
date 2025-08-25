@@ -9,7 +9,9 @@ config :raffle_api, RaffleApi.Repo,
   port: 5433,
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
-  pool_size: 20
+  pool_size: 5,
+  queue_target: 5_000,
+  queue_interval: 1_000
 
 # For development, we disable any cache and enable
 # debugging and code reloading.
