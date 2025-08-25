@@ -17,6 +17,7 @@ defmodule RaffleApi.Application do
       # Start to serve requests, typically the last entry
       RaffleApi.Users.Publisher,
       RaffleApi.Users.Consumer,
+      RaffleApi.Users.DLQConsumer,
       RaffleApiWeb.Endpoint
     ]
 

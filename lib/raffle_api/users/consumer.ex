@@ -1,7 +1,9 @@
 defmodule RaffleApi.Users.Consumer do
   use Broadway
-
   alias Broadway.Message
+  alias RaffleApi.Users.Publisher
+
+  @max_retries String.to_integer(System.get_env("MAX_RETRIES") || "3")
 
   def start_link(_opts) do
     Broadway.start_link(__MODULE__,
@@ -10,39 +12,35 @@ defmodule RaffleApi.Users.Consumer do
         module: {
           BroadwayRabbitMQ.Producer,
           queue: "raffle_queue",
-          connection: [
-            host: "localhost",
-            username: "guest",
-            password: "guest"
-          ],
-          on_failure: :reject_and_requeue
+          connection: [host: "localhost", username: "guest", password: "guest"],
+          on_failure: :reject
         },
         concurrency: 8
       ],
-      processors: [
-        default: [concurrency: 8]
-      ],
+      processors: [default: [concurrency: 8]],
       batchers: [
-        db: [
-          concurrency: 2,
-          batch_size: 500,
-          batch_timeout: 1_000
-        ]
+        db: [concurrency: 2, batch_size: 1_000, batch_timeout: 1_000]
       ]
     )
   end
 
   def handle_message(_, %Message{data: json} = message, _context) do
-    {:ok, data} = Jason.decode(json)
-    Message.put_batcher(message, :db)
-    |> Message.update_data(fn _ -> data end)
+    case Jason.decode(json) do
+      {:ok, data} ->
+        message
+        |> Message.put_batcher(:db)
+        |> Message.update_data(fn _ -> data end)
+
+      {:error, _} ->
+        Message.failed(message, :invalid_json)
+    end
   end
 
   def handle_batch(:db, messages, _, _) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
     users =
-      Enum.map(messages, fn %Message{data: data} ->
+      for %Message{data: data} <- messages do
         %{
           id: data["id"],
           name: data["name"],
@@ -50,13 +48,54 @@ defmodule RaffleApi.Users.Consumer do
           inserted_at: now,
           updated_at: now
         }
-      end)
+      end
 
-    RaffleApi.Repo.insert_all(RaffleApi.Users.User, users,
-      on_conflict: :nothing,
-      conflict_target: [:id]
-    )
+    try do
+      RaffleApi.Repo.insert_all(RaffleApi.Users.User, users,
+        on_conflict: :nothing,
+        conflict_target: [:id]
+      )
 
-    messages
+      messages
+    rescue
+      e ->
+        # Erro de DB: decidir entre retry ou DLQ por mensagem
+        Enum.map(messages, fn msg ->
+          attempt = get_attempt(msg)
+          reason = {:db_error, Exception.message(e)}
+
+          if attempt < @max_retries do
+            # republish para fila de retry; ack a atual
+            _ = Publisher.publish_retry(msg.data, attempt + 1, reason)
+            msg
+          else
+            # estourou tentativas -> vai para DLQ
+            Message.failed(msg, {:exceeded_retries, reason})
+          end
+        end)
+    end
+  end
+
+  # Lê x-retries dos headers (Broadway expõe headers via metadata)
+  defp get_attempt(%Message{metadata: md}) do
+    case md[:headers] do
+      nil ->
+        0
+
+      headers ->
+        case Enum.find(headers, fn {k, _t, _v} -> k in ["x-retries", :"x-retries"] end) do
+          {_, _, v} when is_integer(v) ->
+            v
+
+          {_, _, v} ->
+            case Integer.parse(to_string(v)) do
+              {n, _} -> n
+              _ -> 0
+            end
+
+          _ ->
+            0
+        end
+    end
   end
 end
