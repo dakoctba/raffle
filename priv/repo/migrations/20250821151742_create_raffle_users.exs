@@ -11,5 +11,7 @@ defmodule RaffleApi.Repo.Migrations.CreateRaffleUsers do
 
     create index(:raffle_users, [:user_id])
     create index(:raffle_users, [:raffle_id])
+
+    create unique_index(:raffle_users, [:raffle_id, :user_id])
   end
 end

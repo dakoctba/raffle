@@ -19,13 +19,21 @@ defmodule RaffleApiWeb.RaffleController do
         |> put_resp_header("location", ~p"/api/v1/raffles/#{raffle}")
         |> json(%{id: raffle.id})
 
-      {:error, _changeset} ->
-        send_resp(conn, 409, "")
+      {:error, changeset} ->
+        conn
+        |> put_status(:conflict)
+        |> json(%{errors: Ecto.Changeset.traverse_errors(changeset, &translate_error/1)})
     end
   end
 
   def show(conn, %{"id" => id}) do
     raffle = Raffles.get_raffle!(id)
     render(conn, :show, raffle: raffle)
+  end
+
+  defp translate_error({msg, opts}) do
+    Enum.reduce(opts, msg, fn {key, value}, acc ->
+      String.replace(acc, "%{#{key}}", to_string(value))
+    end)
   end
 end

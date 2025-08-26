@@ -1,0 +1,21 @@
+meta {
+  name: join
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{hostname}}/raffles/ad43b63c-e3d6-48e9-9d66-bc5583992297/join
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "user_id": "d6beaa2a-f6aa-476d-a0ce-11c9bfde3cf8"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

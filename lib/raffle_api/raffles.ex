@@ -38,6 +38,21 @@ defmodule RaffleApi.Raffles do
   def get_raffle!(id), do: Repo.get!(Raffle, id)
 
   @doc """
+  Gets a single raffle.
+
+  Do not raise an error if the raffle does not exist.
+
+  ## Examples
+
+      iex> get_raffle(123)
+      %Raffle{}
+
+      iex> get_raffle(456)
+      nil
+  """
+  def get_raffle(id), do: Repo.get(Raffle, id)
+
+  @doc """
   Creates a raffle.
 
   ## Examples
@@ -146,9 +161,18 @@ defmodule RaffleApi.Raffles do
 
   """
   def create_raffle_user(attrs) do
-    %RaffleUser{}
-    |> RaffleUser.changeset(attrs)
-    |> Repo.insert()
+    case validate_date(attrs["raffle_id"]) do
+      {:ok, _raffle} ->
+        %RaffleUser{}
+        |> RaffleUser.changeset(attrs)
+        |> Repo.insert()
+
+      {:error, :raffle_expired} ->
+        {:error, :raffle_expired}
+
+      {:error, :raffle_not_found} ->
+        {:error, :raffle_not_found}
+    end
   end
 
   @doc """
@@ -196,5 +220,18 @@ defmodule RaffleApi.Raffles do
   """
   def change_raffle_user(%RaffleUser{} = raffle_user, attrs \\ %{}) do
     RaffleUser.changeset(raffle_user, attrs)
+  end
+
+  defp validate_date(raffle_id) do
+    case get_raffle(raffle_id) do
+      %Raffle{scheduled_at: scheduled_at} = raffle ->
+        case DateTime.compare(scheduled_at, DateTime.utc_now()) do
+          :lt -> {:error, :raffle_expired}
+          _ -> {:ok, raffle}
+        end
+
+      nil ->
+        {:error, :raffle_not_found}
+    end
   end
 end
