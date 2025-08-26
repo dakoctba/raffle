@@ -44,6 +44,7 @@ defmodule RaffleApi.MixProject do
       {:ecto_sql, "~> 3.13"},
       {:postgrex, ">= 0.0.0"},
       {:phoenix_live_dashboard, "~> 0.8.3"},
+      {:ecto_psql_extras, "~> 0.8", only: [:dev, :test], runtime: false},
       {:swoosh, "~> 1.16"},
       {:req, "~> 0.5"},
       {:telemetry_metrics, "~> 1.0"},

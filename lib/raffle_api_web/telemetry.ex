@@ -21,6 +21,8 @@ defmodule RaffleApiWeb.Telemetry do
 
   def metrics do
     [
+      counter("raffle_api.repo.query.count"),
+
       # Phoenix Metrics
       summary("phoenix.endpoint.start.system_time",
         unit: {:native, :millisecond}

@@ -3,8 +3,15 @@ defmodule RaffleApi.Users.DLQConsumer do
   require Logger
   alias Broadway.Message
 
-  @max_batch_size String.to_integer(System.get_env("DLQ_BATCH_SIZE") || "500")
-  @batch_timeout String.to_integer(System.get_env("DLQ_BATCH_TIMEOUT_MS") || "1000")
+  @queue System.get_env("USERS_DLQ", "raffle_dlq")
+  @rabbit_host System.get_env("RABBITMQ_HOST", "localhost")
+  @rabbit_user System.get_env("RABBITMQ_USER", "guest")
+  @rabbit_pass System.get_env("RABBITMQ_PASS", "guest")
+
+  @batch_size String.to_integer(System.get_env("DLQ_BATCH_SIZE", "500"))
+  @batch_timeout String.to_integer(System.get_env("DLQ_BATCH_TIMEOUT_MS", "1000"))
+  @proc_concurrency String.to_integer(System.get_env("DLQ_PROC_CONCURRENCY", "1"))
+  @batch_concurrency String.to_integer(System.get_env("DLQ_BATCH_CONCURRENCY", "1"))
 
   def start_link(_opts) do
     Broadway.start_link(__MODULE__,
@@ -12,17 +19,17 @@ defmodule RaffleApi.Users.DLQConsumer do
       producer: [
         module: {
           BroadwayRabbitMQ.Producer,
-          queue: "raffle_dlq",
-          connection: [host: "localhost", username: "guest", password: "guest"],
+          queue: @queue,
+          connection: [host: @rabbit_host, username: @rabbit_user, password: @rabbit_pass],
           on_failure: :reject_and_requeue
         },
-        concurrency: 1
+        concurrency: @proc_concurrency
       ],
-      processors: [default: [concurrency: 1]],
+      processors: [default: [concurrency: @proc_concurrency]],
       batchers: [
         db: [
-          concurrency: 1,
-          batch_size: @max_batch_size,
+          concurrency: @batch_concurrency,
+          batch_size: @batch_size,
           batch_timeout: @batch_timeout
         ]
       ]
