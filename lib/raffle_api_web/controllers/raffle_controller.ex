@@ -11,12 +11,16 @@ defmodule RaffleApiWeb.RaffleController do
     render(conn, :index, raffles: raffles)
   end
 
-  def create(conn, %{"raffle" => raffle_params}) do
-    with {:ok, %Raffle{} = raffle} <- Raffles.create_raffle(raffle_params) do
-      conn
-      |> put_status(:created)
-      |> put_resp_header("location", ~p"/api/v1/raffles/#{raffle}")
-      |> render(:show, raffle: raffle)
+  def create(conn, params) do
+    case Raffles.create_raffle(params) do
+      {:ok, %Raffle{} = raffle} ->
+        conn
+        |> put_status(:created)
+        |> put_resp_header("location", ~p"/api/v1/raffles/#{raffle}")
+        |> json(%{id: raffle.id})
+
+      {:error, _changeset} ->
+        send_resp(conn, 409, "")
     end
   end
 

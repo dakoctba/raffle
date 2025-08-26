@@ -3,7 +3,6 @@ defmodule RaffleApi.Raffles.RaffleUser do
   import Ecto.Changeset
 
   schema "raffle_users" do
-
     field :user_id, :id
     field :raffle_id, :id
 

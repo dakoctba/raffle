@@ -18,8 +18,8 @@ defmodule RaffleApiWeb.RaffleJSON do
   defp data(%Raffle{} = raffle) do
     %{
       id: raffle.id,
-      title: raffle.title,
-      description: raffle.description
+      name: raffle.name,
+      scheduled_at: raffle.scheduled_at
     }
   end
 end

@@ -5,9 +5,9 @@ defmodule RaffleApiWeb.UserController do
   alias RaffleApi.Users.Publisher
 
 
-  def create(conn, user_params) do
+  def create(conn, params) do
     uuid = UUID.uuid4()
-    enriched_data = Map.put(user_params, "id", uuid)
+    enriched_data = Map.put(params, "id", uuid)
 
     case Publisher.publish_user(enriched_data) do
       :ok ->
