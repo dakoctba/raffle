@@ -18,6 +18,9 @@ defmodule RaffleApi.Raffles.Raffle do
     raffle
     |> cast(attrs, [:name, :scheduled_at])
     |> validate_required([:name, :scheduled_at])
-    |> unique_constraint([:name, :scheduled_at], name: :raffles_name_scheduled_at_index)
+    |> unique_constraint([:name, :scheduled_at],
+      name: :raffles_name_scheduled_at_index,
+      message: "Já existe um sorteio com esse nome e data"
+    )
   end
 end

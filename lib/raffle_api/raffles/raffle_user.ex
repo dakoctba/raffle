@@ -16,6 +16,7 @@ defmodule RaffleApi.Raffles.RaffleUser do
     raffle_user
     |> cast(attrs, [:user_id, :raffle_id])
     |> validate_required([:user_id, :raffle_id])
-    |> unique_constraint([:user_id, :raffle_id], name: :raffle_users_raffle_id_user_id_index)
+    |> unique_constraint([:user_id, :raffle_id], name: :raffle_users_raffle_id_user_id_index,
+       message: "Usuário já está participando desse sorteio")
   end
 end
