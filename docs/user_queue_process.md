@@ -8,7 +8,7 @@ Este documento descreve o processo de enfileiramento de novos usuários na Raffl
 
 ```mermaid
 graph TB
-    subgraph "Cliente/API"
+    subgraph "Client/API"
         API[REST API<br/>/api/v1/users]
     end
 
@@ -55,8 +55,6 @@ graph TB
     MAIN_Q -.->|DLX on reject| DLX_EX
     RETRY_Q -.->|TTL expired| MAIN_EX
 ```
-
-![Arquitetura do Sistema de Filas](../docs/images/architecture_diagram.png)
 
 ## Fluxo Detalhado do Processo
 
@@ -121,8 +119,6 @@ sequenceDiagram
     end
 ```
 
-![Fluxo Sequencial do Processo](../docs/images/sequence_diagram.png)
-
 ## Configuração das Filas
 
 ### Fila Principal (raffle_queue)
@@ -135,8 +131,6 @@ graph LR
     end
 ```
 
-![Configuração da Fila Principal](../docs/images/main_queue_config.png)
-
 ### Fila de Retry (raffle_retry_10s)
 ```mermaid
 graph LR
@@ -148,8 +142,6 @@ graph LR
     end
 ```
 
-![Configuração da Fila de Retry](../docs/images/retry_queue_config.png)
-
 ### Dead Letter Queue (raffle_dlq)
 ```mermaid
 graph LR
@@ -159,8 +151,6 @@ graph LR
         C[Reject + Requeue em falha]
     end
 ```
-
-![Configuração da Dead Letter Queue](../docs/images/dlq_config.png)
 
 ## Estados das Mensagens
 
@@ -183,8 +173,6 @@ stateDiagram-v2
 
     Success --> [*]
 ```
-
-![Estados das Mensagens](../docs/images/message_states.png)
 
 ## Headers de Controle
 
