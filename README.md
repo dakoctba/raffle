@@ -14,6 +14,10 @@ RaffleApi is a web application built with the [Phoenix Framework](https://www.ph
 - **Message Queue Processing**: Asynchronous processing using Broadway and RabbitMQ
 - **Data Validation**: Prevents users from joining expired raffles and duplicate participations
 
+## Documentation
+
+- **[User Queue Process](docs/user_queue_process.md)**: Detailed documentation about the user enrollment queue system, including RabbitMQ setup, retry mechanisms, Dead Letter Queue (DLQ), and message flow diagrams.
+
 ## Prerequisites
 
 Before running this project, make sure you have the following tools installed:
