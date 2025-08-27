@@ -56,8 +56,6 @@ graph TB
     RETRY_Q -.->|TTL expired| MAIN_EX
 ```
 
-![System Architecture](./images/architecture_diagram.png)
-
 ## Detailed Process Flow
 
 ```mermaid
@@ -121,8 +119,6 @@ sequenceDiagram
     end
 ```
 
-![Sequential Process Flow](./images/sequence_diagram.png)
-
 ## Queue Configuration
 
 ### Main Queue (raffle_queue)
@@ -135,8 +131,6 @@ graph LR
     end
 ```
 
-![Main Queue Configuration](./images/main_queue_config.png)
-
 ### Retry Queue (raffle_retry_10s)
 ```mermaid
 graph LR
@@ -148,8 +142,6 @@ graph LR
     end
 ```
 
-![Retry Queue Configuration](./images/retry_queue_config.png)
-
 ### Dead Letter Queue (raffle_dlq)
 ```mermaid
 graph LR
@@ -159,8 +151,6 @@ graph LR
         C[Reject + Requeue on failure]
     end
 ```
-
-![Dead Letter Queue Configuration](./images/dlq_config.png)
 
 ## Message States
 
@@ -183,8 +173,6 @@ stateDiagram-v2
 
     Success --> [*]
 ```
-
-![Message States](./images/message_states.png)
 
 ## Control Headers
 

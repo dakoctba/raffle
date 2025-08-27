@@ -16,7 +16,7 @@ RaffleApi is a web application built with the [Phoenix Framework](https://www.ph
 
 ## Documentation
 
-- **[User Queue Process](docs/user_queue_process.md)** (English): Detailed documentation about the user enrollment queue system, including RabbitMQ setup, retry mechanisms, Dead Letter Queue (DLQ), and message flow diagrams.
+- **[User Queue Process](docs/user_queue_process.md)**: Detailed documentation about the user enrollment queue system, including RabbitMQ setup, retry mechanisms, Dead Letter Queue (DLQ), and message flow diagrams.
 
 ## Prerequisites
 
