@@ -1,10 +1,10 @@
-# Processo de Enfileiramento de Usuários - RaffleAPI
+# User Queuing Process - RaffleAPI
 
-## Visão Geral
+## Overview
 
-Este documento descreve o processo de enfileiramento de novos usuários na RaffleAPI, incluindo o sistema de filas RabbitMQ, retry automático e Dead Letter Queue (DLQ).
+This document describes the user enrollment queuing process in RaffleAPI, including the RabbitMQ queue system, automatic retry, and Dead Letter Queue (DLQ).
 
-## Arquitetura do Sistema
+## System Architecture
 
 ```mermaid
 graph TB
@@ -23,7 +23,7 @@ graph TB
     end
 
     subgraph "RabbitMQ Queues"
-        MAIN_Q[raffle_queue<br/>Principal]
+        MAIN_Q[raffle_queue<br/>Main Queue]
         RETRY_Q[raffle_retry_10s<br/>TTL: 10s]
         DLQ_Q[raffle_dlq<br/>Dead Letter]
     end
@@ -56,7 +56,9 @@ graph TB
     RETRY_Q -.->|TTL expired| MAIN_EX
 ```
 
-## Fluxo Detalhado do Processo
+![System Architecture](./images/architecture_diagram.png)
+
+## Detailed Process Flow
 
 ```mermaid
 sequenceDiagram
@@ -68,124 +70,134 @@ sequenceDiagram
     participant DB as Database
     participant DLQ as DLQConsumer
 
-    Note over Client, DLQ: 1. Criação de Usuário
+    Note over Client, DLQ: 1. User Creation
 
     Client->>API: POST /users {name, email}
-    API->>API: Gera UUID
+    API->>API: Generate UUID
     API->>Pub: publish_user(data)
-    Pub->>RMQ: Publica na raffle_queue
+    Pub->>RMQ: Publish to raffle_queue
     API->>Client: 200 {id: uuid}
 
-    Note over Client, DLQ: 2. Processamento Normal
+    Note over Client, DLQ: 2. Normal Processing
 
-    RMQ->>Con: Consome mensagem
-    Con->>Con: Valida JSON
-    Con->>Con: Agrupa em batch
-    Con->>DB: INSERT batch de usuários
+    RMQ->>Con: Consume message
+    Con->>Con: Validate JSON
+    Con->>Con: Group into batch
+    Con->>DB: INSERT user batch
 
-    alt Sucesso
+    alt Success
         DB->>Con: OK
-        Con->>RMQ: ACK mensagem
-    else Erro de DB (tentativas < 3)
-        DB->>Con: Erro
-        Con->>Con: Incrementa x-retries
+        Con->>RMQ: ACK message
+    else DB Error (attempts < 3)
+        DB->>Con: Error
+        Con->>Con: Increment x-retries
         Con->>Pub: publish_retry(data, attempt+1)
-        Pub->>RMQ: Publica na retry_queue
-        Con->>RMQ: ACK mensagem original
+        Pub->>RMQ: Publish to retry_queue
+        Con->>RMQ: ACK original message
 
-        Note over RMQ: TTL de 10s expira
+        Note over RMQ: 10s TTL expires
         RMQ->>RMQ: Move retry -> raffle_queue
 
-        Note over Client, DLQ: Processo se repete
+        Note over Client, DLQ: Process repeats
 
-    else Erro de DB (tentativas >= 3)
-        DB->>Con: Erro
-        Con->>RMQ: REJECT mensagem
-        RMQ->>RMQ: Move para DLQ via DLX
+    else DB Error (attempts >= 3)
+        DB->>Con: Error
+        Con->>RMQ: REJECT message
+        RMQ->>RMQ: Move to DLQ via DLX
 
-        Note over Client, DLQ: 3. Processamento DLQ
+        Note over Client, DLQ: 3. DLQ Processing
 
-        RMQ->>DLQ: Consome da raffle_dlq
-        DLQ->>DLQ: Valida JSON
-        DLQ->>DLQ: Agrupa em batch
+        RMQ->>DLQ: Consume from raffle_dlq
+        DLQ->>DLQ: Validate JSON
+        DLQ->>DLQ: Group into batch
         DLQ->>DB: INSERT batch (manual)
 
-        alt Sucesso
+        alt Success
             DB->>DLQ: OK
-            DLQ->>RMQ: ACK mensagem
-        else Falha
+            DLQ->>RMQ: ACK message
+        else Failure
             DLQ->>RMQ: REJECT and REQUEUE
         end
     end
 ```
 
-## Configuração das Filas
+![Sequential Process Flow](./images/sequence_diagram.png)
 
-### Fila Principal (raffle_queue)
+## Queue Configuration
+
+### Main Queue (raffle_queue)
 ```mermaid
 graph LR
     subgraph "raffle_queue"
-        A[Mensagens dos usuários]
+        A[User messages]
         B[x-dead-letter-exchange: raffle_dlx]
         C[x-dead-letter-routing-key: raffle_dlq]
     end
 ```
 
-### Fila de Retry (raffle_retry_10s)
+![Main Queue Configuration](./images/main_queue_config.png)
+
+### Retry Queue (raffle_retry_10s)
 ```mermaid
 graph LR
     subgraph "raffle_retry_10s"
-        A[Mensagens com falha]
+        A[Failed messages]
         B[x-message-ttl: 10000ms]
         C[x-dead-letter-exchange: raffle_exchange]
         D[x-dead-letter-routing-key: raffle_queue]
     end
 ```
 
+![Retry Queue Configuration](./images/retry_queue_config.png)
+
 ### Dead Letter Queue (raffle_dlq)
 ```mermaid
 graph LR
     subgraph "raffle_dlq"
-        A[Mensagens esgotadas]
-        B[Processamento manual]
-        C[Reject + Requeue em falha]
+        A[Exhausted messages]
+        B[Manual processing]
+        C[Reject + Requeue on failure]
     end
 ```
 
-## Estados das Mensagens
+![Dead Letter Queue Configuration](./images/dlq_config.png)
+
+## Message States
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Published: API publica
-    Published --> Processing: Consumer pega
+    [*] --> Published: API publishes
+    Published --> Processing: Consumer picks up
     Processing --> Success: DB OK
     Processing --> Retry: DB Error (attempt < 3)
     Processing --> DLQ: DB Error (attempt >= 3)
-    Processing --> DLQ: JSON inválido
+    Processing --> DLQ: Invalid JSON
 
-    Retry --> Waiting: TTL ativo (10s)
-    Waiting --> Processing: TTL expira
+    Retry --> Waiting: TTL active (10s)
+    Waiting --> Processing: TTL expires
 
     DLQ --> DLQProcessing: DLQ Consumer
     DLQProcessing --> Success: DB OK
     DLQProcessing --> DLQRequeue: DB Error
-    DLQRequeue --> DLQProcessing: Retry manual
+    DLQRequeue --> DLQProcessing: Manual retry
 
     Success --> [*]
 ```
 
-## Headers de Controle
+![Message States](./images/message_states.png)
 
-### Mensagem Original
+## Control Headers
+
+### Original Message
 ```json
 {
   "id": "uuid-v4",
-  "name": "João Silva",
-  "email": "joao@email.com"
+  "name": "John Silva",
+  "email": "john@email.com"
 }
 ```
 
-### Mensagem com Retry
+### Message with Retry
 ```json
 Headers: {
   "x-retries": 1,
@@ -193,77 +205,77 @@ Headers: {
 }
 Body: {
   "id": "uuid-v4",
-  "name": "João Silva",
-  "email": "joao@email.com"
+  "name": "John Silva",
+  "email": "john@email.com"
 }
 ```
 
-## Configurações de Environment
+## Environment Configuration
 
-| Variável | Padrão | Descrição |
-|----------|---------|-----------|
-| `RETRY_TTL_MS` | 10000 | TTL da fila de retry em ms |
-| `MAX_RETRIES` | 3 | Máximo de tentativas antes do DLQ |
-| `USERS_BATCH_SIZE` | 1000 | Tamanho do batch para inserção |
-| `USERS_BATCH_TIMEOUT_MS` | 1000 | Timeout do batch em ms |
-| `USERS_PROC_CONCURRENCY` | 8 | Concorrência dos processors |
-| `USERS_BATCH_CONCURRENCY` | 2 | Concorrência dos batchers |
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `RETRY_TTL_MS` | 10000 | Retry queue TTL in ms |
+| `MAX_RETRIES` | 3 | Maximum attempts before DLQ |
+| `USERS_BATCH_SIZE` | 1000 | Batch size for insertion |
+| `USERS_BATCH_TIMEOUT_MS` | 1000 | Batch timeout in ms |
+| `USERS_PROC_CONCURRENCY` | 8 | Processor concurrency |
+| `USERS_BATCH_CONCURRENCY` | 2 | Batcher concurrency |
 
-## Monitoramento e Observabilidade
+## Monitoring and Observability
 
-### Logs Importantes
+### Important Logs
 
-1. **Publisher**: Falhas de conexão e publicação
-2. **Consumer**: Erros de processamento e retry
-3. **DLQConsumer**: Processamento manual de mensagens falhas
+1. **Publisher**: Connection and publication failures
+2. **Consumer**: Processing errors and retries
+3. **DLQConsumer**: Manual processing of failed messages
 
-### Métricas Sugeridas
+### Suggested Metrics
 
-- Taxa de sucesso do consumer principal
-- Número de mensagens na fila de retry
-- Número de mensagens no DLQ
-- Latência de processamento
-- Taxa de erro por tipo
+- Main consumer success rate
+- Number of messages in retry queue
+- Number of messages in DLQ
+- Processing latency
+- Error rate by type
 
-## Cenários de Falha
+## Failure Scenarios
 
-### 1. Falha Temporária de Banco
-- **Ação**: Retry automático com backoff (TTL)
-- **Limite**: 3 tentativas
-- **Recovery**: Automático quando DB volta
+### 1. Temporary Database Failure
+- **Action**: Automatic retry with backoff (TTL)
+- **Limit**: 3 attempts
+- **Recovery**: Automatic when DB comes back
 
-### 2. Falha Persistente de Banco
-- **Ação**: Mensagem vai para DLQ
-- **Recovery**: Processamento manual via DLQConsumer
+### 2. Persistent Database Failure
+- **Action**: Message goes to DLQ
+- **Recovery**: Manual processing via DLQConsumer
 
-### 3. JSON Malformado
-- **Ação**: Reject direto para DLQ
-- **Recovery**: Log de erro, mensagem descartada
+### 3. Malformed JSON
+- **Action**: Direct reject to DLQ
+- **Recovery**: Error log, message discarded
 
-### 4. Falha do RabbitMQ
-- **Ação**: Publisher retorna erro para API
-- **Recovery**: Cliente pode tentar novamente
+### 4. RabbitMQ Failure
+- **Action**: Publisher returns error to API
+- **Recovery**: Client can retry
 
-## Considerações de Performance
+## Performance Considerations
 
-- **Batching**: Reduz overhead de transações DB
-- **Concorrência**: Configurável por ambiente
-- **Persistência**: Mensagens sobrevivem a restarts
-- **Durabilidade**: Filas e exchanges são duráveis
+- **Batching**: Reduces DB transaction overhead
+- **Concurrency**: Configurable per environment
+- **Persistence**: Messages survive restarts
+- **Durability**: Queues and exchanges are durable
 
-## Gerando Imagens dos Diagramas
+## Generating Diagram Images
 
-Para gerar as imagens dos diagramas Mermaid, você pode usar:
+To generate images from Mermaid diagrams, you can use:
 
 1. **Mermaid CLI**:
 ```bash
-# Instalar mermaid-cli
+# Install mermaid-cli
 npm install -g @mermaid-js/mermaid-cli
 
-# Gerar imagens (executar na raiz do projeto)
+# Generate images (run from project root)
 mmdc -i docs/user_queue_process.md -o docs/images/ -t dark
 ```
 
-2. **Online**: Copie os diagramas para [Mermaid Live Editor](https://mermaid.live/) e exporte as imagens.
+2. **Online**: Copy diagrams to [Mermaid Live Editor](https://mermaid.live/) and export images.
 
-3. **VS Code**: Use a extensão "Mermaid Preview" para visualizar e exportar.
+3. **VS Code**: Use "Mermaid Preview" extension to visualize and export.

@@ -16,8 +16,7 @@ RaffleApi is a web application built with the [Phoenix Framework](https://www.ph
 
 ## Documentation
 
-- **[User Queue Process](docs/user_queue_process.md)** (Portuguese): Detailed documentation about the user enrollment queue system, including RabbitMQ setup, retry mechanisms, Dead Letter Queue (DLQ), and message flow diagrams.
-- **[User Queue Process](docs/user_queue_process_en.md)** (English): English version of the user enrollment queue system documentation.
+- **[User Queue Process](docs/user_queue_process.md)** (English): Detailed documentation about the user enrollment queue system, including RabbitMQ setup, retry mechanisms, Dead Letter Queue (DLQ), and message flow diagrams.
 
 ## Prerequisites
 
@@ -349,52 +348,10 @@ Key dependencies (see `mix.exs`):
 
 See `mix.exs` for the complete list of dependencies.
 
-## Project Guidelines
-
-Please follow the coding and usage guidelines:
-
-- Use the `:req` library for HTTP requests
-- Follow Phoenix v1.8 LiveView and component conventions
-- Apply Elixir and Mix best practices
-- Use Broadway for message processing
-- Follow conventional commit messages
-
-## Production Deployment
-
-For production deployment:
-
-1. **Environment Variables**: Set all required environment variables
-2. **Database**: Ensure PostgreSQL is properly configured
-3. **RabbitMQ**: Configure RabbitMQ cluster for high availability
-4. **Security**: Update default passwords and credentials
-5. **Monitoring**: Set up application and infrastructure monitoring
-
-Ready to run in production? Please [check the Phoenix deployment guides](https://hexdocs.pm/phoenix/deployment.html).
-
 ## Learn More
-
-### Phoenix & Elixir Resources
-- [Phoenix Framework](https://www.phoenixframework.org/)
-- [Phoenix Guides](https://hexdocs.pm/phoenix/overview.html)
-- [Phoenix Docs](https://hexdocs.pm/phoenix)
-- [Elixir Forum](https://elixirforum.com/c/phoenix-forum)
-- [Phoenix Source](https://github.com/phoenixframework/phoenix)
 
 ### Project Dependencies Documentation
 - [Broadway](https://hexdocs.pm/broadway/Broadway.html) - Message processing
 - [Ecto](https://hexdocs.pm/ecto/Ecto.html) - Database toolkit
 - [Oban](https://hexdocs.pm/oban/Oban.html) - Background job processing
 - [Swoosh](https://hexdocs.pm/swoosh/Swoosh.html) - Email delivery
-
-## Contributing
-
-1. Follow the setup instructions above
-2. Create a feature branch from `master`
-3. Make your changes with tests
-4. Run the full test suite: `mix test`
-5. Check code formatting: `mix format --check-formatted`
-6. Submit a pull request
-
-## License
-
-This project is licensed under [LICENSE_TYPE] - see the LICENSE file for details.
