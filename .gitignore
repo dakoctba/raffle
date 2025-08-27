@@ -27,3 +27,4 @@ raffle_api-*.tar
 
 .env
 .envrc
+.DS_Store

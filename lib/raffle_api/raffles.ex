@@ -6,7 +6,7 @@ defmodule RaffleApi.Raffles do
   import Ecto.Query, warn: false
   alias RaffleApi.Repo
 
-  alias RaffleApi.Raffles.Raffle
+  alias RaffleApi.Raffles.{Raffle, RaffleUser}
 
   @doc """
   Returns the list of raffles.
@@ -55,6 +55,10 @@ defmodule RaffleApi.Raffles do
   @doc """
   Creates a raffle.
 
+  Idempotent: The FOR UPDATE instruction is used to lock the selected rows
+  until the transaction is complete, preventing other transactions from modifying
+  them.
+
   ## Examples
 
       iex> create_raffle(%{field: value})
@@ -68,6 +72,42 @@ defmodule RaffleApi.Raffles do
     %Raffle{}
     |> Raffle.changeset(attrs)
     |> Repo.insert()
+    |> schedule_raffle()
+  end
+
+  @doc """
+  Runs the draw for a raffle.
+
+  ## Examples
+
+      iex> run_draw(123)
+      {:ok, %Raffle{}}
+
+      iex> run_draw(456)
+      {:error, :no_participants}
+
+  """
+  def run_draw(raffle_id) do
+    Repo.transaction(fn ->
+      raffle =
+        Raffle
+        |> where([r], r.id == ^raffle_id)
+        |> lock("FOR UPDATE")
+        |> Repo.one!()
+
+      if raffle.drawn_at do
+        raffle
+      else
+        case pick_random_user_id(raffle_id) do
+          nil ->
+            Repo.rollback(:no_participants)
+
+          winner_id ->
+            process_winner(raffle, winner_id)
+        end
+      end
+    end)
+    |> handle_draw_result()
   end
 
   @doc """
@@ -116,8 +156,6 @@ defmodule RaffleApi.Raffles do
   def change_raffle(%Raffle{} = raffle, attrs \\ %{}) do
     Raffle.changeset(raffle, attrs)
   end
-
-  alias RaffleApi.Raffles.RaffleUser
 
   @doc """
   Returns the list of raffle_users.
@@ -233,5 +271,51 @@ defmodule RaffleApi.Raffles do
       nil ->
         {:error, :raffle_not_found}
     end
+  end
+
+  defp schedule_raffle({:ok, %Raffle{id: raffle_id, scheduled_at: scheduled_at} = raffle}) do
+    job =
+      RaffleApi.Workers.DrawRaffle.new(
+        %{"raffle_id" => raffle_id},
+        scheduled_at: scheduled_at
+      )
+
+    case Oban.insert(job) do
+      {:ok, _job} ->
+        {:ok, raffle}
+
+      {:error, reason} ->
+        {:error, {:job_schedule_failed, reason}}
+    end
+  end
+
+  defp schedule_raffle({:error, _} = error), do: error
+
+  defp handle_draw_result({:ok, raffle}), do: {:ok, raffle}
+  defp handle_draw_result({:error, :no_participants}), do: {:error, :no_participants}
+  defp handle_draw_result({:error, :winner_user_not_found}), do: {:error, :winner_user_not_found}
+  defp handle_draw_result({:error, changeset}), do: {:error, changeset}
+
+  defp process_winner(raffle, winner_id) do
+    changeset = Raffle.winner_changeset(raffle, winner_id)
+
+    case Repo.update(changeset) do
+      {:ok, updated_raffle} ->
+        updated_raffle
+
+      {:error, changeset} ->
+        IO.inspect(changeset.errors, label: "changeset.errors")
+        Repo.rollback(changeset)
+    end
+  end
+
+  defp pick_random_user_id(raffle_id) do
+    from(ru in RaffleUser,
+      where: ru.raffle_id == ^raffle_id,
+      order_by: fragment("random()"),
+      select: ru.user_id,
+      limit: 1
+    )
+    |> Repo.one()
   end
 end

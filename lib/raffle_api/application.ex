@@ -18,6 +18,7 @@ defmodule RaffleApi.Application do
       RaffleApi.Users.Publisher,
       RaffleApi.Users.Consumer,
       RaffleApi.Users.DLQConsumer,
+      {Oban, Application.fetch_env!(:raffle_api, Oban)},
       RaffleApiWeb.Endpoint
     ]
 

@@ -15,6 +15,11 @@ config :raffle_api, RaffleApi.Repo,
   migration_primary_key: [type: :uuid],
   migration_foreign_key: [type: :uuid]
 
+config :raffle_api, Oban,
+  repo: RaffleApi.Repo,
+  queues: [raffles: 5],
+  plugins: [Oban.Plugins.Pruner]
+
 # Configures the endpoint
 config :raffle_api, RaffleApiWeb.Endpoint,
   url: [host: "localhost"],

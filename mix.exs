@@ -56,6 +56,7 @@ defmodule RaffleApi.MixProject do
       {:elixir_uuid, "~> 1.2"},
       {:broadway_rabbitmq, "~> 0.8.2"},
       {:broadway, "~> 1.0"},
+      {:oban, "~> 2.17"}
     ]
   end
 

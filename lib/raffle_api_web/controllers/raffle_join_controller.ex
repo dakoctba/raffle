@@ -3,7 +3,7 @@ defmodule RaffleApiWeb.RaffleJoinController do
 
   alias RaffleApi.Raffles
 
-  def join(conn, %{"id" => raffle_id, "user_id" => user_id} = params) do
+  def join(conn, %{"id" => raffle_id, "user_id" => user_id}) do
     case Raffles.create_raffle_user(%{"raffle_id" => raffle_id, "user_id" => user_id}) do
       {:ok, _raffle_user} ->
         json(conn, %{message: "Usuário inscrito no sorteio com sucesso!"})
