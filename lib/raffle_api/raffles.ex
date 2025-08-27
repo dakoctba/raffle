@@ -260,6 +260,50 @@ defmodule RaffleApi.Raffles do
     RaffleUser.changeset(raffle_user, attrs)
   end
 
+  @doc """
+  Gets the result of a raffle draw.
+
+  Returns the winner information if the raffle has been drawn,
+  or an appropriate error if the raffle hasn't been completed yet.
+
+  ## Examples
+
+      iex> get_raffle_result("valid-uuid")
+      {:ok, %{id: "user-id", name: "User Name", email: "user@example.com"}}
+
+      iex> get_raffle_result("undrawn-raffle-uuid")
+      {:error, :raffle_not_drawn}
+
+      iex> get_raffle_result("invalid-uuid")
+      {:error, :raffle_not_found}
+
+  """
+  def get_raffle_result(raffle_id) do
+    alias RaffleApi.Users.User
+
+    case get_raffle(raffle_id) do
+      nil ->
+        {:error, :raffle_not_found}
+
+      %Raffle{winner_user_id: nil} ->
+        {:error, :raffle_not_drawn}
+
+      %Raffle{winner_user_id: winner_id} ->
+        case Repo.get(User, winner_id) do
+          nil ->
+            {:error, :winner_not_found}
+
+          %User{} = winner ->
+            {:ok,
+             %{
+               id: winner.id,
+               name: winner.name,
+               email: winner.email
+             }}
+        end
+    end
+  end
+
   defp validate_date(raffle_id) do
     case get_raffle(raffle_id) do
       %Raffle{scheduled_at: scheduled_at} = raffle ->

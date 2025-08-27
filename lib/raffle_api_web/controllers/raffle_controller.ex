@@ -31,6 +31,30 @@ defmodule RaffleApiWeb.RaffleController do
     render(conn, :show, raffle: raffle)
   end
 
+  def result(conn, %{"id" => id}) do
+    case Raffles.get_raffle_result(id) do
+      {:ok, winner} ->
+        conn
+        |> put_status(:ok)
+        |> json(%{winner: winner})
+
+      {:error, :raffle_not_found} ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{error: "Sorteio não encontrado"})
+
+      {:error, :raffle_not_drawn} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{error: "Sorteio ainda não foi realizado"})
+
+      {:error, :winner_not_found} ->
+        conn
+        |> put_status(:internal_server_error)
+        |> json(%{error: "Dados do vencedor não encontrados"})
+    end
+  end
+
   defp translate_error({msg, opts}) do
     Enum.reduce(opts, msg, fn {key, value}, acc ->
       String.replace(acc, "%{#{key}}", to_string(value))

@@ -12,6 +12,7 @@ defmodule RaffleApiWeb.Router do
     resources "/raffles", RaffleController, only: [:create, :show]
 
     post "/raffles/:id/join", RaffleJoinController, :join
+    get "/raffles/:id/result", RaffleController, :result
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
@@ -29,6 +30,7 @@ defmodule RaffleApiWeb.Router do
       live_dashboard "/dashboard",
         metrics: RaffleApiWeb.Telemetry,
         ecto_repos: [RaffleApi.Repo]
+
       forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
   end

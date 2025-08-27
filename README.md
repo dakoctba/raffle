@@ -3,6 +3,17 @@
 
 RaffleApi is a web application built with the [Phoenix Framework](https://www.phoenixframework.org/) and Elixir. It provides a robust backend for managing raffles, users, and message queues using RabbitMQ and PostgreSQL.
 
+## Features
+
+- **User Management**: Create and manage users with unique IDs, names, and emails
+- **Raffle Creation**: Create raffles with scheduled draw dates
+- **Raffle Participation**: Users can join raffles (one participation per user per raffle)
+- **Automatic Draw**: Raffles are automatically drawn at their scheduled time using background jobs
+- **Result Query**: Get raffle results including winner information (ID, name, email)
+- **Concurrency Safety**: Handles high-traffic scenarios with database constraints and transactions
+- **Message Queue Processing**: Asynchronous processing using Broadway and RabbitMQ
+- **Data Validation**: Prevents users from joining expired raffles and duplicate participations
+
 ## Prerequisites
 
 Before running this project, make sure you have the following tools installed:
@@ -145,7 +156,22 @@ When running locally:
 
 ## API Usage
 
-The API is available at `http://localhost:4000/api/v1`. Here are the available endpoints with curl examples:
+The API is available at `http://localhost:4000/api/v1`.
+
+### Available Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/users` | Create a new user |
+| GET | `/users/:id` | Get user details |
+| POST | `/raffles` | Create a new raffle |
+| GET | `/raffles/:id` | Get raffle details |
+| POST | `/raffles/:id/join` | Join a raffle |
+| GET | `/raffles/:id/result` | Get raffle result/winner |
+
+### Examples
+
+Here are curl examples for each endpoint:
 
 ### Users
 
@@ -185,6 +211,29 @@ curl -X POST http://localhost:4000/api/v1/raffles/ad43b63c-e3d6-48e9-9d66-bc5583
   -d '{
     "user_id": "d6beaa2a-f6aa-476d-a0ce-11c9bfde3cf8"
   }'
+```
+
+#### Get Raffle Result
+```bash
+# Replace {raffle_id} with actual UUID
+curl -X GET http://localhost:4000/api/v1/raffles/{raffle_id}/result
+
+# Example with sample UUID:
+curl -X GET http://localhost:4000/api/v1/raffles/e861ecec-c4e8-4001-9a43-a905deb8e45a/result
+
+# Successful response (raffle completed):
+# {
+#   "winner": {
+#     "id": "5938d7f2-d971-406f-a4b8-28690ab05ebc",
+#     "name": "Bethany Parisian",
+#     "email": "Gerda56@gmail.com"
+#   }
+# }
+
+# Error responses:
+# 404 - Raffle not found: {"error": "Sorteio não encontrado"}
+# 422 - Raffle not drawn yet: {"error": "Sorteio ainda não foi realizado"}
+# 500 - Winner data not found: {"error": "Dados do vencedor não encontrados"}
 ```
 
 ### Testing the API

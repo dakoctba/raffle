@@ -1,0 +1,21 @@
+meta {
+  name: result
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{hostname}}/raffles/e861ecec-c4e8-4001-9a43-a905deb8e45a/result
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "user_id": "5938d7f2-d971-406f-a4b8-28690ab05ebc"
+  }
+}
+
+settings {
+  encodeUrl: true
+}
